@@ -6,9 +6,10 @@ export default class {
     this.active = false;
   }
 
-  setup(samplesPerPixel, sampleRate) {
+  setup(samplesPerPixel, sampleRate, snapSelection) {
     this.samplesPerPixel = samplesPerPixel;
     this.sampleRate = sampleRate;
+    this.snapSelection = snapSelection;
   }
 
   emitSelection(x) {
@@ -24,7 +25,6 @@ export default class {
       this.samplesPerPixel,
       this.sampleRate
     );
-
     this.track.ee.emit("select", startTime, endTime, this.track);
   }
 
@@ -37,7 +37,9 @@ export default class {
     e.preventDefault();
     this.active = true;
 
-    this.startX = e.offsetX;
+    this.startX = this.snapSelection
+      ? e.srcElement.offsetLeft
+      : e.srcElement.offsetLeft + e.offsetX;
     const startTime = pixelsToSeconds(
       this.startX,
       this.samplesPerPixel,
@@ -50,22 +52,34 @@ export default class {
   mousemove(e) {
     if (this.active) {
       e.preventDefault();
-      this.emitSelection(e.offsetX);
+      this.emitSelection(
+        this.snapSelection
+          ? e.srcElement.offsetLeft
+          : e.srcElement.offsetLeft + e.offsetX
+      );
     }
   }
 
   mouseup(e) {
     if (this.active) {
       e.preventDefault();
-      this.complete(e.offsetX);
+      this.complete(
+        this.snapSelection
+          ? e.srcElement.offsetLeft
+          : e.srcElement.offsetLeft + e.offsetX
+      );
     }
   }
 
   mouseleave(e) {
-    if (this.active) {
-      e.preventDefault();
-      this.complete(e.offsetX);
-    }
+    // if (this.active) {
+    //   e.preventDefault();
+    //   this.complete(
+    //     this.snapSelection
+    //       ? e.srcElement.offsetLeft
+    //       : e.srcElement.offsetLeft + e.offsetX
+    //   );
+    // }
   }
 
   static getClass() {

@@ -1,17 +1,18 @@
 import h from "virtual-dom/h";
 
-import { secondsToPixels } from "./utils/conversions";
+import { secondsToPixels, barsToSeconds } from "./utils/conversions";
 import TimeScaleHook from "./render/TimeScaleHook";
-import { timeinfo } from "./utils/markerData";
+import { tempoinfo, getScaleInfo } from "./utils/markerData";
 
-class TimeScale {
+class TempoScale {
   constructor(
     duration,
     offset,
     samplesPerPixel,
     sampleRate,
     marginLeft = 0,
-    colors
+    colors,
+    tempo
   ) {
     this.duration = duration;
     this.offset = offset;
@@ -19,23 +20,8 @@ class TimeScale {
     this.sampleRate = sampleRate;
     this.marginLeft = marginLeft;
     this.colors = colors;
-
-    this.timeinfo = timeinfo;
-  }
-
-  getScaleInfo(resolution) {
-    let keys = Object.keys(this.timeinfo).map((item) => parseInt(item, 10));
-
-    // make sure keys are numerically sorted.
-    keys = keys.sort((a, b) => a - b);
-
-    for (let i = 0; i < keys.length; i += 1) {
-      if (resolution <= keys[i]) {
-        return this.timeinfo[keys[i]];
-      }
-    }
-
-    return this.timeinfo[keys[0]];
+    this.tempo = tempo;
+    this.tempoinfo = tempoinfo;
   }
 
   /*
@@ -53,59 +39,86 @@ class TimeScale {
     return `${m}:${s}`;
   }
 
+  /*
+    Return time in format bars.beats
+  */
+  static formatTimeBeatsBars(milliseconds, tempo) {
+    const beats = Math.round(milliseconds * (tempo / 60000.0));
+    const bars = Math.floor(beats / 4) + 1;
+
+    const beatsDisplay = (beats % 4) + 1;
+    return beatsDisplay == 1 ? `${bars}` : `${bars}.${beatsDisplay}`;
+  }
+
   render() {
+    const beatsPerBar = 4; //todo user set
+    const secPerBar = barsToSeconds(1, beatsPerBar, this.tempo);
+
     const widthX = secondsToPixels(
       this.duration,
       this.samplesPerPixel,
       this.sampleRate
     );
     const pixPerSec = this.sampleRate / this.samplesPerPixel;
+    const pixPerBar = Math.round(secPerBar * pixPerSec);
     const pixOffset = secondsToPixels(
       this.offset,
       this.samplesPerPixel,
       this.sampleRate
     );
-    const scaleInfo = this.getScaleInfo(this.samplesPerPixel);
+    const scaleInfo = getScaleInfo(this.samplesPerPixel, "tempo");
     const canvasInfo = {};
     const timeMarkers = [];
     const end = widthX + pixOffset;
     let counter = 0;
 
-    for (let i = 0; i < end; i += pixPerSec * scaleInfo.secondStep) {
+    const stepInterval = scaleInfo.secondStep * pixPerBar;
+    const bigStepInterval = scaleInfo.bigStep * pixPerBar;
+    const markerInterval = scaleInfo.marker * pixPerBar;
+
+    for (let i = 0; i < end; i += stepInterval) {
       const pixIndex = Math.floor(i);
       const pix = pixIndex - pixOffset;
 
       if (pixIndex >= pixOffset) {
         // put a timestamp every 30 seconds.
-        if (scaleInfo.marker && counter % scaleInfo.marker === 0) {
+        if (scaleInfo.marker && counter % markerInterval === 0) {
+          const barMarker = counter % pixPerBar === 0;
           timeMarkers.push(
             h(
               "div.time",
               {
                 attributes: {
-                  style: `position: absolute; left: ${pix}px;`,
+                  style: `position: absolute; left: ${pix}px; font-weight: ${
+                    barMarker ? "bold" : "normal"
+                  }`,
                 },
               },
-              [TimeScale.formatTime(counter)]
+              [
+                TempoScale.formatTimeBeatsBars(
+                  (counter / pixPerSec) * 1000,
+                  this.tempo
+                ),
+              ]
             )
           );
 
           canvasInfo[pix] = 10;
         } else if (scaleInfo.bigStep && counter % scaleInfo.bigStep === 0) {
           canvasInfo[pix] = 5;
-        } else if (scaleInfo.smallStep && counter % scaleInfo.smallStep === 0) {
+        } else if (scaleInfo.smallStep && counter % stepInterval === 0) {
           canvasInfo[pix] = 2;
         }
       }
 
-      counter += 1000 * scaleInfo.secondStep;
+      counter += stepInterval;
     }
 
     return h(
-      "div.playlist-time-scale",
+      "div.playlist-tempo-scale",
       {
         attributes: {
-          style: `position: relative; left: 0; right: 0; margin-left: ${this.marginLeft}px; margin-top: 30px`,
+          style: `position: relative; left: 0; right: 0; margin-left: ${this.marginLeft}px;`,
         },
       },
       [
@@ -129,4 +142,4 @@ class TimeScale {
   }
 }
 
-export default TimeScale;
+export default TempoScale;

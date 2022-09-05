@@ -5,16 +5,18 @@ export default class {
     this.track = track;
   }
 
-  setup(samplesPerPixel, sampleRate) {
+  setup(samplesPerPixel, sampleRate, snapSelection) {
     this.samplesPerPixel = samplesPerPixel;
     this.sampleRate = sampleRate;
+    this.snapSelection = snapSelection;
   }
 
   click(e) {
     e.preventDefault();
-
-    const startX = e.offsetX;
-    const startTime = pixelsToSeconds(
+    const startX = this.snapSelection
+      ? e.srcElement.offsetLeft
+      : e.srcElement.offsetLeft + e.offsetX;
+    let startTime = pixelsToSeconds(
       startX,
       this.samplesPerPixel,
       this.sampleRate

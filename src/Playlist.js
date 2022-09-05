@@ -10,6 +10,11 @@ import { resampleAudioBuffer } from "./utils/audioData";
 import LoaderFactory from "./track/loader/LoaderFactory";
 import ScrollHook from "./render/ScrollHook";
 import TimeScale from "./TimeScale";
+import TempoScale from "./TempoScale";
+import {
+  getTempoMarkerIntervals,
+  getTimeMarkerIntervals,
+} from "./utils/markerData";
 import Track from "./Track";
 import Playout from "./Playout";
 import AnnotationList from "./annotation/AnnotationList";
@@ -30,6 +35,8 @@ export default class {
     this.duration = 0;
     this.scrollLeft = 0;
     this.scrollTimer = undefined;
+    this.tempo = 0;
+    this.beatsPerBar = 4;
     this.showTimescale = false;
     // whether a user is scrolling the waveform
     this.isScrolling = false;
@@ -40,6 +47,9 @@ export default class {
     this.durationFormat = "hh:mm:ss.uuu";
     this.isAutomaticScroll = false;
     this.resetDrawTimer = undefined;
+    this.showTempoMarkers = false;
+    this.isSnapSelection = false;
+    this.snapTo = "time";
   }
 
   // TODO extract into a plugin
@@ -111,6 +121,27 @@ export default class {
 
   setShowTimeScale(show) {
     this.showTimescale = show;
+  }
+
+  setShowTempoMarkers(show) {
+    this.showTempoMarkers = show;
+  }
+
+  setTempo(tempo) {
+    this.tempo = tempo;
+  }
+
+  setSnapMarkerIntervals(snapTo) {
+    const snapMarkerIntervals =
+      snapTo === "tempo"
+        ? getTempoMarkerIntervals(
+            this.samplesPerPixel,
+            this.sampleRate,
+            this.tempo,
+            this.beatsPerBar
+          )
+        : getTimeMarkerIntervals(this.samplesPerPixel, this.sampleRate);
+    this.snapMarkerIntervals = snapMarkerIntervals;
   }
 
   setMono(mono) {
@@ -220,6 +251,18 @@ export default class {
       }
     });
 
+    ee.on("snap", (val) => {
+      this.isSnapSelection = val;
+      this.setSnapMarkerIntervals(this.snapTo);
+      this.drawRequest();
+    });
+
+    ee.on("snapto", (val) => {
+      this.snapTo = val;
+      this.setSnapMarkerIntervals(this.snapTo);
+      this.drawRequest();
+    });
+
     ee.on("startaudiorendering", (type) => {
       this.startOfflineRender(type);
     });
@@ -326,6 +369,16 @@ export default class {
           name: file.name,
         },
       ]);
+    });
+
+    ee.on("tempochange", (tempo) => {
+      this.setTempo(tempo);
+      this.drawRequest();
+    });
+
+    ee.on("tempomarkers", (val) => {
+      this.setShowTempoMarkers(val);
+      this.drawRequest();
     });
 
     ee.on("trim", () => {
@@ -473,6 +526,7 @@ export default class {
         this.adjustDuration();
         this.draw(this.render());
 
+        this.ee.emit("tempoupdate", this.tempo);
         this.ee.emit("audiosourcesrendered");
       })
       .catch((e) => {
@@ -615,6 +669,7 @@ export default class {
     this.tracks.forEach((track) => {
       track.calculatePeaks(zoom, this.sampleRate);
     });
+    this.setSnapMarkerIntervals(this.snapTo);
   }
 
   muteTrack(track) {
@@ -964,6 +1019,9 @@ export default class {
       colors: this.colors,
       barWidth: this.barWidth,
       barGap: this.barGap,
+      offset: this.scrollLeft,
+      snapSelection: this.isSnapSelection,
+      snapMarkerIntervals: this.snapMarkerIntervals,
     };
 
     return _defaults({}, data, defaults);
@@ -995,6 +1053,21 @@ export default class {
     );
 
     return timeScale.render();
+  }
+
+  renderTempoScale() {
+    const controlWidth = this.controls.show ? this.controls.width : 0;
+    const tempoScale = new TempoScale(
+      this.duration,
+      this.scrollLeft,
+      this.samplesPerPixel,
+      this.sampleRate,
+      controlWidth,
+      this.colors,
+      this.tempo
+    );
+
+    return tempoScale.render();
   }
 
   renderTrackSection() {
@@ -1037,6 +1110,10 @@ export default class {
 
   render() {
     const containerChildren = [];
+
+    if (this.showTempoMarkers) {
+      containerChildren.push(this.renderTempoScale());
+    }
 
     if (this.showTimescale) {
       containerChildren.push(this.renderTimeScale());

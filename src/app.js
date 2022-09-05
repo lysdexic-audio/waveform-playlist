@@ -13,7 +13,9 @@ export function init(options = {}, ee = EventEmitter()) {
     mono: true,
     fadeType: "logarithmic",
     exclSolo: false,
+    tempo: 0,
     timescale: false,
+    tempomarkers: false,
     controls: {
       show: false,
       width: 150,
@@ -65,6 +67,7 @@ export function init(options = {}, ee = EventEmitter()) {
   playlist.setUpEventEmitter();
   playlist.setTimeSelection(0, 0);
   playlist.setState(config.state);
+  playlist.setTempo(config.tempo);
   playlist.setControlOptions(config.controls);
   playlist.setWaveHeight(config.waveHeight);
   playlist.setCollapsedWaveHeight(config.collapsedWaveHeight);
@@ -74,6 +77,7 @@ export function init(options = {}, ee = EventEmitter()) {
   playlist.setMono(config.mono);
   playlist.setExclSolo(config.exclSolo);
   playlist.setShowTimeScale(config.timescale);
+  playlist.setShowTempoMarkers(config.tempomarkers);
   playlist.setSeekStyle(config.seekStyle);
   playlist.setAnnotations(config.annotationList);
   playlist.setBarGap(config.barGap);
@@ -94,6 +98,9 @@ export function init(options = {}, ee = EventEmitter()) {
   config.container.appendChild(rootNode);
   playlist.tree = tree;
   playlist.rootNode = rootNode;
+
+  // emit settings to ui listeners
+  playlist.ee.emit("tempoupdate", playlist.tempo);
 
   return playlist;
 }

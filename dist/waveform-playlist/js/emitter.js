@@ -8,6 +8,7 @@ var $timeFormat = $container.find('.time-format');
 var $audioStart = $container.find('.audio-start');
 var $audioEnd = $container.find('.audio-end');
 var $time = $container.find('.audio-pos');
+var $tempo = $container.find('.input-tempo');
 
 var format = "hh:mm:ss.uuu";
 var startTime = 0;
@@ -96,6 +97,9 @@ function updateTime(time) {
 updateSelect(startTime, endTime);
 updateTime(audioPos);
 
+function updateTempo(tempo) {
+    $tempo.val(tempo);
+}
 
 
 /*
@@ -173,6 +177,22 @@ $container.on("click", ".btn-shift", function() {
   toggleActive(this);
 });
 
+$container.on("click", ".btn-snap", function(e) {
+  e.currentTarget.classList.toggle('active')
+  const snapEnabled = e.currentTarget.classList.contains("active");
+  ee.emit("snap", snapEnabled);
+});
+
+$container.on("click", ".btn-snap-time", function(e) {
+  ee.emit("snapto", "time");
+  toggleActive(this);
+});
+
+$container.on("click", ".btn-snap-tempo", function(e) {
+  ee.emit("snapto", "tempo");
+  toggleActive(this);
+});
+
 $container.on("click", ".btn-fadein", function() {
   ee.emit("statechange", "fadein");
   toggleActive(this);
@@ -211,6 +231,10 @@ $container.on("click", ".btn-zoom-in", function() {
 
 $container.on("click", ".btn-zoom-out", function() {
   ee.emit("zoomout");
+});
+
+$container.on("change", ".input-tempo", function(e) {
+  ee.emit("tempochange", e.target.value);
 });
 
 $container.on("click", ".btn-trim-audio", function() {
@@ -284,6 +308,10 @@ $container.on("change", ".automatic-scroll", function(e){
   ee.emit("automaticscroll", $(e.target).is(':checked'));
 });
 
+$container.on("change", ".tempo-markers", function(e){
+  ee.emit("tempomarkers", $(e.target).is(':checked'));
+});
+
 function displaySoundStatus(status) {
   $(".sound-status").html(status);
 }
@@ -313,6 +341,8 @@ function displayDownloadLink(link) {
 ee.on("select", updateSelect);
 
 ee.on("timeupdate", updateTime);
+
+ee.on("tempoupdate", updateTempo);
 
 ee.on("mute", function(track) {
   displaySoundStatus("Mute button pressed for " + track.name);

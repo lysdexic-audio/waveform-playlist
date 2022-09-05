@@ -364,20 +364,36 @@ export default class {
     };
 
     let overlayClass = "";
+    const stepInterval = data.snapMarkerIntervals
+      ? data.snapMarkerIntervals.markerInterval
+      : channelPixels;
+    const slices = [];
+    for (let i = 0; i < channelPixels; i += stepInterval) {
+      let sliceConfig = {
+        attributes: {
+          style: `position: absolute; top: 0; right: 0; bottom: 0; left: ${i}px; width: ${stepInterval}px; z-index: 9; border-right-style: solid; border-width: 1px; border-color: #77777750;`,
+        },
+      };
+      if (this.stateObj) {
+        this.stateObj.setup(
+          data.resolution,
+          data.sampleRate,
+          data.snapSelection
+        );
+        const StateClass = stateClasses[this.state];
+        const events = StateClass.getEvents();
 
-    if (this.stateObj) {
-      this.stateObj.setup(data.resolution, data.sampleRate);
-      const StateClass = stateClasses[this.state];
-      const events = StateClass.getEvents();
+        events.forEach((event) => {
+          sliceConfig[`on${event}`] = this.stateObj[event].bind(this.stateObj);
+        });
 
-      events.forEach((event) => {
-        config[`on${event}`] = this.stateObj[event].bind(this.stateObj);
-      });
-
-      overlayClass = StateClass.getClass();
+        overlayClass = StateClass.getClass();
+      }
+      slices.push(h(`div.playlist-overlay${overlayClass}`, sliceConfig));
     }
+
     // use this overlay for track event cursor position calculations.
-    return h(`div.playlist-overlay${overlayClass}`, config);
+    return h(`div.overlay`, config, slices);
   }
 
   renderControls(data) {
@@ -677,6 +693,8 @@ export default class {
 
     waveformChildren.push(channels);
     waveformChildren.push(this.renderOverlay(data));
+
+    // draw tempo markers on
 
     // draw cursor selection on active track.
     if (data.isActive === true) {

@@ -35,6 +35,8 @@ export default class {
     this.startTime = 0;
     this.endTime = 0;
     this.stereoPan = 0;
+    this.muted = false;
+    this.soloed = false;
   }
 
   setEventEmitter(ee) {
@@ -84,6 +86,10 @@ export default class {
         this.setStartTime(start);
       }
     }
+  }
+
+  clear() {
+    this.trim(0, 0);
   }
 
   setStartTime(start) {
@@ -361,11 +367,21 @@ export default class {
       attributes: {
         style: `position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: ${channelPixels}px; z-index: 9;`,
       },
+      ondragover: (e) => {
+        e.preventDefault();
+      },
+      ondrop: (e) => {
+        e.preventDefault();
+        const ctrlKey = e.ctrlKey;
+        //todo: add replace function for track to avoid creating a new one - use ctrl modifier to create a new track
+        this.ee.emit("clear");
+        this.ee.emit("newtrack", e.dataTransfer.files[0]);
+      },
     };
 
     let overlayClass = "";
     const stepInterval = data.snapMarkerIntervals
-      ? data.snapMarkerIntervals.markerInterval
+      ? data.snapMarkerIntervals.stepInterval
       : channelPixels;
     const slices = [];
     for (let i = 0; i < channelPixels; i += stepInterval) {
@@ -378,7 +394,8 @@ export default class {
         this.stateObj.setup(
           data.resolution,
           data.sampleRate,
-          data.snapSelection
+          data.snapSelection,
+          data.offset
         );
         const StateClass = stateClasses[this.state];
         const events = StateClass.getEvents();
@@ -411,13 +428,15 @@ export default class {
           title: "Remove track",
         },
         onclick: () => {
-          this.ee.emit("removeTrack", this);
+          this.ee.emit("clearTrack", this);
         },
       },
       [h("i.fas.fa-times")]
     );
 
-    const trackName = h("span", [this.name]);
+    const trackName = h("span", { attributes: { style: "overflow: auto" } }, [
+      this.name,
+    ]);
 
     const collapseTrack = h(
       "button.btn.btn-info.btn-xs.track-collapse",
@@ -440,7 +459,9 @@ export default class {
     if (widgets.remove) {
       headerChildren.push(removeTrack);
     }
-    headerChildren.push(trackName);
+    if (widgets.name) {
+      headerChildren.push(trackName);
+    }
     if (widgets.collapse) {
       headerChildren.push(collapseTrack);
     }
@@ -478,21 +499,28 @@ export default class {
 
       if (widgets.volume) {
         controls.push(
-          h("label.volume", [
-            h("input.volume-slider", {
-              attributes: {
-                "aria-label": "Track volume control",
-                type: "range",
-                min: 0,
-                max: 100,
-                value: 100,
-              },
-              hook: new VolumeSliderHook(this.gain),
-              oninput: (e) => {
-                this.ee.emit("volumechange", e.target.value, this);
-              },
-            }),
-          ])
+          h(
+            "label.volume",
+            {
+              style:
+                "transform: rotate(-90deg); width: 130px; translate: -34px 50px",
+            },
+            [
+              h("input.volume-slider", {
+                attributes: {
+                  "aria-label": "Track volume control",
+                  type: "range",
+                  min: 0,
+                  max: 100,
+                  value: 100,
+                },
+                hook: new VolumeSliderHook(this.gain),
+                oninput: (e) => {
+                  this.ee.emit("volumechange", e.target.value, this);
+                },
+              }),
+            ]
+          )
         );
       }
 

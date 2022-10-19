@@ -1,8 +1,13 @@
 import h from "virtual-dom/h";
 
-import { secondsToPixels, barsToSeconds } from "./utils/conversions";
+import { secondsToPixels, barsToSeconds, iround } from "./utils/conversions";
 import TimeScaleHook from "./render/TimeScaleHook";
-import { tempoinfo, getScaleInfo } from "./utils/markerData";
+import { tempoinfo, getScaleInfo, getTempoMarkerIntervals } from "./utils/markerData";
+
+/**
+ TODO: Select dropdown change to Bars, Beats
+ TODO: Only redraw tempo markers on Zoom
+ */
 
 class TempoScale {
   constructor(
@@ -12,7 +17,7 @@ class TempoScale {
     sampleRate,
     marginLeft = 0,
     colors,
-    tempo
+    tempo,
   ) {
     this.duration = duration;
     this.offset = offset;
@@ -22,6 +27,22 @@ class TempoScale {
     this.colors = colors;
     this.tempo = tempo;
     this.tempoinfo = tempoinfo;
+  }
+
+  static annotation(pix, annotation, bold, size) {
+      return h(
+      "div.time",
+      {
+        attributes: {
+          style: `position: absolute; left: ${pix}px; top: ${size === "small" ? "5px" : "0px"}; font-size: ${size === "small" ? "0.65em" : size}; font-weight: ${
+            bold ? "bold" : "normal"
+          }`,
+        },
+      },
+      [
+        annotation
+      ]
+    )
   }
 
   /*
@@ -43,14 +64,28 @@ class TempoScale {
     Return time in format bars.beats
   */
   static formatTimeBeatsBars(milliseconds, tempo) {
-    const beats = Math.round(milliseconds * (tempo / 60000.0));
-    const bars = Math.floor(beats / 4) + 1;
-
-    const beatsDisplay = (beats % 4) + 1;
-    return beatsDisplay == 1 ? `${bars}` : `${bars}.${beatsDisplay}`;
+    const beats = milliseconds * (tempo / 60000.0);
+    const bars = Math.floor(beats / 4);
+    const semiquavers = beats * 4;
+    //const beatsDisplay = (beats % 4) + 1;
+    const barsDisplay = bars + 1;
+    const beatsDisplay = Math.floor(beats % 4) + 1;
+    const semiquaversDisplay = Math.floor(semiquavers % 4) + 1;
+    return beatsDisplay === semiquaversDisplay === 1 
+    ? `${barsDisplay}` 
+    : semiquaversDisplay === 1 
+    ? `${barsDisplay}.${beatsDisplay}`
+    : `${barsDisplay}.${beatsDisplay}.${semiquaversDisplay}`;
   }
 
   render() {
+    // TODO: Refactor to use a general minimum pixel distance for drawing marker lines
+      // TODO: No triplet tempo markers only grid (like Ableton)
+      // TODO: 10px marker = Bar 
+      // TODO:  5px marker = Beat
+      // TODO:  2px marker = Quaver
+    // TODO: Refactor to use a general minimum pixel distance for drawing marker _annotations_
+
     const beatsPerBar = 4; //todo user set
     const secPerBar = barsToSeconds(1, beatsPerBar, this.tempo);
 
@@ -72,46 +107,40 @@ class TempoScale {
     const end = widthX + pixOffset;
     let counter = 0;
 
-    const stepInterval = scaleInfo.secondStep * pixPerBar;
-    const bigStepInterval = scaleInfo.bigStep * pixPerBar;
-    const markerInterval = scaleInfo.marker * pixPerBar;
+    const { stepInterval, largeStepInterval, smallStepInterval } = getTempoMarkerIntervals(this.samplesPerPixel, this.sampleRate, this.tempo, beatsPerBar);
 
+    let stepIdx = 0;
     for (let i = 0; i < end; i += stepInterval) {
-      const pixIndex = Math.floor(i);
-      const pix = pixIndex - pixOffset;
-
-      if (pixIndex >= pixOffset) {
-        // put a timestamp every 30 seconds.
-        if (scaleInfo.marker && counter % markerInterval === 0) {
-          const barMarker = counter % pixPerBar === 0;
-          timeMarkers.push(
-            h(
-              "div.time",
-              {
-                attributes: {
-                  style: `position: absolute; left: ${pix}px; font-weight: ${
-                    barMarker ? "bold" : "normal"
-                  }`,
-                },
-              },
-              [
-                TempoScale.formatTimeBeatsBars(
-                  (counter / pixPerSec) * 1000,
-                  this.tempo
-                ),
-              ]
-            )
-          );
-
-          canvasInfo[pix] = 10;
-        } else if (scaleInfo.bigStep && counter % scaleInfo.bigStep === 0) {
-          canvasInfo[pix] = 5;
-        } else if (scaleInfo.smallStep && counter % stepInterval === 0) {
-          canvasInfo[pix] = 2;
+        const pixIndex = Math.floor(i);
+        const pix = pixIndex - pixOffset;
+        stepIdx++;
+        let subStepIdx = 0;
+        for(let j = pix; j < (pix+stepInterval || end); j += (stepInterval/4)) {
+          subStepIdx++;
+          let subSubStepIdx = 0;
+          for(let k = j; k < (j+(stepInterval/4) || end); k += (stepInterval/4/4)) {
+            subSubStepIdx++;
+            if(subSubStepIdx == 1 || subSubStepIdx == 5) continue
+            const subSubStepPix = Math.floor(k);
+            canvasInfo[subSubStepPix] = 4;
+            if(stepInterval/4/4 < 20) continue
+            if(stepInterval/4/4 < 30 && (subSubStepIdx % 3 !== 0)) continue
+            if(subSubStepPix <= 0) continue
+            timeMarkers.push(TempoScale.annotation(subSubStepPix, `${stepIdx}.${subStepIdx}.${subSubStepIdx}`, false, "small"));
+          }
+          if(subStepIdx == 1 || subStepIdx == 5) continue
+          const subStepPix = Math.floor(j);
+          canvasInfo[subStepPix] = 6;
+          if((subStepPix >= 0) && (stepInterval/4 > 20)) {
+            if(stepInterval/4 < 30 && (subStepIdx % 3 == 0) || stepInterval/4 > 30) {
+              timeMarkers.push(TempoScale.annotation(subStepPix, `${stepIdx}.${subStepIdx}`, false, "0.95em"));
+            }
+          }
+          if (pixIndex >= pixOffset) {
+            canvasInfo[pix] = 10;
+            timeMarkers.push(TempoScale.annotation(pix, stepIdx, true, "1em"));
+          }
         }
-      }
-
-      counter += stepInterval;
     }
 
     return h(

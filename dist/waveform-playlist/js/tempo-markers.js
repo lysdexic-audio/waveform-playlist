@@ -6,7 +6,9 @@ var playlist = WaveformPlaylist.init({
     timescale: true,
     tempomarkers: true,
     seekStyle: "line",
-    state: "cursor",
+    state: "select",
+    snap: true,
+    snapTo: "tempo",
     colors: {
       waveOutlineColor: "#005BBB",
     },
@@ -14,7 +16,7 @@ var playlist = WaveformPlaylist.init({
       show: true, //whether or not to include the track controls
       width: 200, //width of controls in pixels
     },
-    zoomLevels: [250, 500, 1000, 2500, 5000],
+    zoomLevels: [10, 50, 100, 250, 500, 1000, 2500, 5000],
   });
   
   playlist

@@ -160,11 +160,11 @@
                             </div>
 
                             <div class="btn-group btn-playlist-state-group">
-                                <button type="button" class="btn-cursor btn btn-outline-dark active"
+                                <button type="button" class="btn-cursor btn btn-outline-dark"
                                     title="Select cursor">
                                     <i class="fas fa-headphones"></i>
                                 </button>
-                                <button type="button" class="btn-select btn btn-outline-dark"
+                                <button type="button" class="btn-select btn btn-outline-dark active"
                                     title="Select audio region">
                                     <i class="fas fa-italic"></i>
                                 </button>
@@ -174,7 +174,7 @@
                                 </button>
                             </div>
                             <div class="btn-group btn-playlist-state-group">
-                                <button type="button" class="btn-snap btn btn-outline-dark"
+                                <button type="button" class="btn-snap btn btn-outline-dark active"
                                     title="Snap selection cursor">
                                     <i class="fas fa-magnet"></i>
                                 </button>
@@ -183,11 +183,46 @@
                                         title="Snap selection cursor to time markers">
                                         <i class="far fa-clock"></i>
                                     </button>
-                                    <button type="button" class="btn-snap-tempo btn btn-outline-dark"
+                                    <button type="button" class="btn-snap-tempo btn btn-outline-dark active"
                                         title="Snap selection cursor to tempo markers">
                                         <i class="fas fa-music"></i>
                                     </button>
                                 </div>
+                            </div>
+
+                            <div class="btn-group">
+                                <label class="sr-only" for="notedivision_change">Note division</label>
+                                <input type="number" class="input-notedivision form-control"
+                                    style="max-width: 4em" id="notedivision_change" inputmode="none" min="1" max="32" value="4">
+                                <button type="button" class="btn-triplet-grid btn btn-outline-dark"
+                                    title="Enable triplet grid">
+                                    <svg viewBox="20 10 90 120" width="20" height="20">
+                                        <g>
+                                            <path d="z" class="st0"  ></path>
+                                            <ellipse ry="9.2" rx="13.8" cy="98.9" cx="25.3" class="st1" transform="matrix(0.866 -0.5 0.5 0.866 -46.0729 25.9247)" ></ellipse>
+                                            <path d="M36.6,93.8V50.9" class="st2" ></path>
+                                            <ellipse ry="9.2" rx="13.8" cy="99.2" cx="62.5" class="st1" transform="matrix(0.866 -0.5 0.5 0.866 -41.2178 44.5294)" ></ellipse>
+                                            <path d="M73.7,94V51.2" class="st2" ></path>
+                                            <ellipse ry="9.2" rx="13.8" cy="98" cx="99.6" class="st1" transform="matrix(0.866 -0.5 0.5 0.866 -35.6756 62.9162)" ></ellipse>
+                                            <path d="M110.8,92.9V50" class="st2" ></path>
+                                            <path d="M36.6,42.9c5.1-4.2,11-7.6,17.3-9.9c6.3-2.3,13.1-3.6,19.8-3.6s13.6,1.3,19.8,3.6c6.3,2.3,12.2,5.6,17.3,9.9 c-6.1-2.3-12.3-4.5-18.4-6S80,34.6,73.7,34.6S61.2,35.3,55,36.9C48.9,38.3,42.8,40.6,36.6,42.9z" class="st1" ></path>
+                                            <path d="M75.6,15.5c2.7,0.8,4.1,2,4.1,4c0,1.3-0.6,2.2-1.8,2.9c-1.2,0.8-2.6,1.2-4.2,1.2c-1.3,0-2.3-0.3-3.1-0.6 c-0.8-0.4-1.3-1-1.3-1.7c0-0.4,0.1-0.6,0.5-0.9c0.4-0.3,0.8-0.4,1.3-0.4s0.9,0.1,1.2,0.3c0.3,0.3,0.5,0.5,0.5,0.8 c0,0.4-0.1,0.6-0.5,0.9L72.2,22c0,0.1,0.1,0.3,0.4,0.3c0.3,0,0.6,0.1,1,0.1c1.9,0,2.8-1,2.8-3.2c0-0.8-0.1-1.4-0.4-1.9 c-0.3-0.5-0.5-0.6-0.9-0.9c-0.4-0.3-0.9-0.3-1.5-0.4c-0.4,0-0.5-0.1-0.5-0.3v-0.6c0-0.1,0.1-0.3,0.5-0.3c1.7-0.1,2.6-1,2.6-2.8 c0-1.5-0.8-2.3-2.2-2.3c-0.4,0-0.6,0-1,0.1c-0.4,0.1-0.4,0.3-0.4,0.4s0.1,0.1,0.3,0.3c0.3,0.1,0.3,0.4,0.3,0.6 c0,0.3-0.1,0.5-0.5,0.6c-0.3,0.3-0.6,0.3-1,0.3c-0.5,0-0.9-0.1-1.2-0.4c-0.3-0.3-0.4-0.5-0.4-0.8c0-0.5,0.4-1,1.3-1.5 c0.9-0.5,1.9-0.6,2.9-0.6c1.4,0,2.7,0.3,3.6,0.9c0.9,0.6,1.4,1.4,1.4,2.3C79.2,13.4,78.1,14.6,75.6,15.5z"  ></path>
+                                            <path d="z" class="st0"  ></path>
+                                        </g>
+                                    </svg>
+                                    <style>
+                                        button svg > g {
+                                            fill: #000;
+                                            stroke: #000;
+                                            stroke-width: 7.5 
+                                        }
+                                        button:hover svg > g, button.active svg > g {
+                                            fill: #fff;
+                                            stroke: #fff;
+                                            stroke-width: 7.5  
+                                        }
+                                    </style>
+                                </button>
                             </div>
                         </div>
                     </div>

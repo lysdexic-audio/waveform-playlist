@@ -38,6 +38,8 @@ export function init(options = {}, ee = EventEmitter()) {
     barWidth: 1,
     barGap: 0,
     state: "cursor",
+    snap: false,
+    snapTo: "time",
     zoomLevels: [512, 1024, 2048, 4096],
     annotationList: {
       annotations: [],
@@ -67,7 +69,6 @@ export function init(options = {}, ee = EventEmitter()) {
   playlist.setUpEventEmitter();
   playlist.setTimeSelection(0, 0);
   playlist.setState(config.state);
-  playlist.setTempo(config.tempo);
   playlist.setControlOptions(config.controls);
   playlist.setWaveHeight(config.waveHeight);
   playlist.setCollapsedWaveHeight(config.collapsedWaveHeight);
@@ -78,6 +79,9 @@ export function init(options = {}, ee = EventEmitter()) {
   playlist.setExclSolo(config.exclSolo);
   playlist.setShowTimeScale(config.timescale);
   playlist.setShowTempoMarkers(config.tempomarkers);
+  playlist.setSnapSelection(config.snap);
+  playlist.setSnapTo(config.snapTo);
+  playlist.setTempo(config.tempo);
   playlist.setSeekStyle(config.seekStyle);
   playlist.setAnnotations(config.annotationList);
   playlist.setBarGap(config.barGap);

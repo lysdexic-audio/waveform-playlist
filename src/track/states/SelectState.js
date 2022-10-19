@@ -1,4 +1,4 @@
-import { pixelsToSeconds } from "../../utils/conversions";
+import { pixelsToSeconds, secondsToPixels } from "../../utils/conversions";
 
 export default class {
   constructor(track) {
@@ -6,10 +6,11 @@ export default class {
     this.active = false;
   }
 
-  setup(samplesPerPixel, sampleRate, snapSelection) {
+  setup(samplesPerPixel, sampleRate, snapSelection, scrollLeft) {
     this.samplesPerPixel = samplesPerPixel;
     this.sampleRate = sampleRate;
     this.snapSelection = snapSelection;
+    this.scrollLeft = scrollLeft;
   }
 
   emitSelection(x) {
@@ -72,14 +73,32 @@ export default class {
   }
 
   mouseleave(e) {
-    // if (this.active) {
-    //   e.preventDefault();
-    //   this.complete(
-    //     this.snapSelection
-    //       ? e.srcElement.offsetLeft
-    //       : e.srcElement.offsetLeft + e.offsetX
-    //   );
-    // }
+    if (this.active) {
+      e.preventDefault();
+      const scrollOffset = secondsToPixels(
+        this.scrollLeft,
+        this.samplesPerPixel,
+        this.sampleRate
+      );
+      const maxWidth =
+        e.srcElement.closest(".waveform").offsetWidth + scrollOffset;
+
+      if (e.srcElement.offsetLeft < 1 && e.offsetX < 0) {
+        this.complete(
+          this.snapSelection
+            ? e.srcElement.offsetLeft
+            : e.srcElement.offsetLeft + (e.offsetX >= 0 ? e.offsetX : 0)
+        );
+      }
+      if (e.srcElement.offsetLeft + e.srcElement.offsetWidth >= maxWidth) {
+        //todo scroll
+        this.complete(
+          this.snapSelection
+            ? e.srcElement.offsetLeft
+            : e.srcElement.offsetLeft + (e.offsetX >= 0 ? e.offsetX : 0)
+        );
+      }
+    }
   }
 
   static getClass() {

@@ -9,11 +9,14 @@ var $audioStart = $container.find('.audio-start');
 var $audioEnd = $container.find('.audio-end');
 var $time = $container.find('.audio-pos');
 var $tempo = $container.find('.input-tempo');
+var $tripletGridInput = $container.find('.btn-triplet-grid');
+var $noteDivInput = $container.find('.input-notedivision');
 
 var format = "hh:mm:ss.uuu";
 var startTime = 0;
 var endTime = 0;
 var audioPos = 0;
+var noteDivision = 4;
 var downloadUrl = undefined;
 var isLooping = false;
 var playoutPromises;
@@ -235,6 +238,25 @@ $container.on("click", ".btn-zoom-out", function() {
 
 $container.on("change", ".input-tempo", function(e) {
   ee.emit("tempochange", e.target.value);
+});
+
+$container.on("change", ".input-notedivision", function(e) {
+  let noteDiv = e.target.value;
+  const tripletEnabled = $tripletGridInput[0].classList.contains("active");
+  noteDiv = (noteDiv > noteDivision) ? Math.min(noteDivision == 1 && tripletEnabled ? noteDivision * 1.5 : noteDivision * 2, e.target.max) : Math.max(noteDivision * 0.5, e.target.min);
+  e.target.value = noteDiv;
+  noteDivision = noteDiv;
+  ee.emit("notedivisionchange", 1/noteDivision);
+});
+
+$container.on("click", ".btn-triplet-grid", function(e) {
+  e.currentTarget.classList.toggle('active');
+  const tripletGridEnabled = e.currentTarget.classList.contains("active");
+  $noteDivInput[0].max = tripletGridEnabled ? "48" : "32";
+  noteDivision = tripletGridEnabled ? parseInt(noteDivision * 1.5) : Math.round(noteDivision * 0.666);
+  $noteDivInput.val(noteDivision);
+  ee.emit("triplet-grid", tripletGridEnabled);
+  ee.emit("notedivisionchange", 1/noteDivision);
 });
 
 $container.on("click", ".btn-trim-audio", function() {

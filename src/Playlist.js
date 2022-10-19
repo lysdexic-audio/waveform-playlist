@@ -12,7 +12,7 @@ import ScrollHook from "./render/ScrollHook";
 import TimeScale from "./TimeScale";
 import TempoScale from "./TempoScale";
 import {
-  getTempoMarkerIntervals,
+  getTempoGridIntervals,
   getTimeMarkerIntervals,
 } from "./utils/markerData";
 import Track from "./Track";
@@ -23,7 +23,7 @@ import RecorderWorkerFunction from "./utils/recorderWorker";
 import ExportWavWorkerFunction from "./utils/exportWavWorker";
 
 export default class {
-  constructor() {
+  constructor(args) {
     this.tracks = [];
     this.soloedTracks = [];
     this.mutedTracks = [];
@@ -37,6 +37,7 @@ export default class {
     this.scrollTimer = undefined;
     this.tempo = 0;
     this.beatsPerBar = 4;
+    this.noteDivision = 1/4;
     this.showTimescale = false;
     // whether a user is scrolling the waveform
     this.isScrolling = false;
@@ -129,16 +130,33 @@ export default class {
 
   setTempo(tempo) {
     this.tempo = tempo;
+    this.setSnapMarkerIntervals(this.snapTo);
+    this.drawRequest();
+  }
+
+  setNoteDivision(noteDivision) {
+    this.noteDivision = noteDivision;
+    this.setSnapMarkerIntervals(this.snapTo);
+    this.drawRequest();
+  }
+
+  setSnapSelection(isSnapSelection) {
+    this.isSnapSelection = isSnapSelection;
+  }
+
+  setSnapTo(snapTo) {
+    this.snapTo = snapTo;
   }
 
   setSnapMarkerIntervals(snapTo) {
     const snapMarkerIntervals =
       snapTo === "tempo"
-        ? getTempoMarkerIntervals(
+        ? getTempoGridIntervals(
             this.samplesPerPixel,
             this.sampleRate,
             this.tempo,
-            this.beatsPerBar
+            this.beatsPerBar,
+            this.noteDivision
           )
         : getTimeMarkerIntervals(this.samplesPerPixel, this.sampleRate);
     this.snapMarkerIntervals = snapMarkerIntervals;
@@ -252,13 +270,13 @@ export default class {
     });
 
     ee.on("snap", (val) => {
-      this.isSnapSelection = val;
+      this.setSnapSelection(val);
       this.setSnapMarkerIntervals(this.snapTo);
       this.drawRequest();
     });
 
     ee.on("snapto", (val) => {
-      this.snapTo = val;
+      this.setSnapTo(val);
       this.setSnapMarkerIntervals(this.snapTo);
       this.drawRequest();
     });
@@ -326,6 +344,14 @@ export default class {
       this.drawRequest();
     });
 
+    ee.on("clearTrack", (track) => {
+      track.clear();
+      track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
+      this.setTimeSelection(0, 0);
+      this.adjustDuration();
+      this.drawRequest();
+    });
+
     ee.on("changeTrackView", (track, opts) => {
       this.collapseTrack(track, opts);
       this.drawRequest();
@@ -381,6 +407,10 @@ export default class {
       this.drawRequest();
     });
 
+    ee.on("notedivisionchange", (val) => {
+      this.setNoteDivision(val);
+    });
+
     ee.on("trim", () => {
       const track = this.getActiveTrack();
       const timeSelection = this.getTimeSelection();
@@ -389,6 +419,7 @@ export default class {
       track.calculatePeaks(this.samplesPerPixel, this.sampleRate);
 
       this.setTimeSelection(0, 0);
+      this.adjustDuration();
       this.drawRequest();
     });
 
@@ -723,6 +754,7 @@ export default class {
         list.splice(index, 1);
       }
     });
+    this.adjustDuration();
   }
 
   adjustTrackPlayout() {
@@ -1064,7 +1096,7 @@ export default class {
       this.sampleRate,
       controlWidth,
       this.colors,
-      this.tempo
+      this.tempo,
     );
 
     return tempoScale.render();

@@ -1,4 +1,4 @@
-import { barsToPixels } from "./conversions";
+import { barsToPixels, barsToSamples, fround } from "./conversions";
 
 export var timeinfo = {
   20000: {
@@ -78,17 +78,39 @@ export var tempoinfo = {
   },
   1500: {
     marker: 1,
+    markerTriplet: 1,
     bigStep: 1 / 4,
+    bigStepTriplet: 1 / 6,
     smallStep: 1 / 16,
+    smallStepTriplet: 1 / 12,
     secondStep: 1 / 16,
+    secondStepTriplet: 1 / 24,
   },
   700: {
-    marker: 1 / 4,
+    marker: 1 / 4 ,
+    markerTriplet: 1 / 6,
     bigStep: 1 / 8,
+    bigStepTriplet: 1 / 12,
     smallStep: 1 / 16,
+    smallStepTriplet: 1 / 24,
     secondStep: 1 / 32,
+    secondStepTriplet: 1 / 48 
+  },
+  200: {
+    marker: 1 / 16 ,
+    markerTriplet: 1 / 24,
+    bigStep: 1 / 8,
+    bigStepTriplet: 1 / 12,
+    smallStep: 1 / 16,
+    smallStepTriplet: 1 / 24,
+    secondStep: 1 / 32,
+    secondStepTriplet: 1 / 48 
   },
 };
+
+//export var markerPixelLimit = 
+
+
 
 export function getScaleInfo(resolution, markerType) {
   const markerinfo =
@@ -107,18 +129,57 @@ export function getScaleInfo(resolution, markerType) {
   return markerinfo[keys[0]];
 }
 
+
+/**
+ * Use the resolution and tempo to return the Tempo marker and annotation intervals in pixels
+   TODO: Refactor to use a general minimum pixel distance for drawing marker lines
+      TODO: No triplet tempo markers only grid (like Ableton)
+      TODO: 10px marker = Bar 
+      TODO:  5px marker = Beat
+      TODO:  2px marker = Quaver
+    TODO: Refactor to use a general minimum pixel distance for drawing marker _annotations_
+ */
 export function getTempoMarkerIntervals(
   resolution,
   sampleRate,
   tempo,
-  beatsPerBar
+  beatsPerBar,
+) {
+  const scaleInfo = getScaleInfo(resolution, "tempo");
+  const pixPerBar = barsToPixels(1, beatsPerBar, resolution, sampleRate, tempo);
+  const pixPerBeat = pixPerBar / beatsPerBar;
+  const pixPerQuaver = pixPerBeat / 2;
+  const pixPerSemiQuaver = pixPerBeat / 4;
+  const pixPerSec = sampleRate / resolution;
+
+  //console.log("resolution", resolution, sampleRate, tempo)
+  //console.log("pixPerBar", pixPerBar, "pixPerBeat", pixPerBeat, "pixPerQuaver", pixPerQuaver, "pixPerSemiQuaver", pixPerSemiQuaver); 
+
+  return {
+    stepInterval: pixPerBar,
+    largeStepInterval: pixPerBeat,
+    smallStepInterval: pixPerQuaver,
+    annotationInterval: pixPerBeat,
+  };
+}
+
+/**
+ * Use the selected note division to return the Tempo grid interval in pixels
+ */
+export function getTempoGridIntervals(
+  resolution,
+  sampleRate,
+  tempo,
+  beatsPerBar,
+  noteDivision
 ) {
   const scaleInfo = getScaleInfo(resolution, "tempo");
   const pixPerBar = barsToPixels(1, beatsPerBar, resolution, sampleRate, tempo);
   return {
-    stepInterval: scaleInfo.secondStep * pixPerBar,
-    bigStepInterval: scaleInfo.bigStep * pixPerBar,
-    markerInterval: scaleInfo.marker * pixPerBar,
+    stepInterval: pixPerBar * noteDivision,
+    bigStepInterval: pixPerBar * noteDivision * 2.0,
+    beatInterval: pixPerBar / beatsPerBar,
+    barInterval: pixPerBar
   };
 }
 
